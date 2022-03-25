@@ -239,7 +239,7 @@ def create_doc(spec, doc_dir, pkg_name, flatten: bool):
 
         assert doc_dir in out_dir.parents
 
-        out_dir.mkdir(parents=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     # task = resolve_class(spec['pydra_task'])
 
@@ -266,34 +266,42 @@ def create_doc(spec, doc_dir, pkg_name, flatten: bool):
             tbl_info.write_row("Info URL", spec["info_url"])
         if spec.get("frequency", None):
             tbl_info.write_row("Frequency", spec["frequency"].name.title())
+        if spec.get("doi", None):
+            tbl_info.write_row("DOI", spec["doi"])
 
         f.write("\n")
 
-        first_cmd = spec['commands'][0]
+        for idx, cmd in enumerate(spec['commands']):
+            # TODO: How are multiple commands distinguished between?
 
-        f.write("### Inputs\n")
-        tbl_inputs = MarkdownTable(f, "Name", "Bids path", "Data type")
-        # for x in task.inputs:
-        for x in first_cmd.get('inputs', []):
-            name, dtype, path = x
-            tbl_inputs.write_row(escaped_md(name), escaped_md(path), escaped_md(dtype))
-        f.write("\n")
+            cmd_description = cmd.get('description', None)
+            if cmd_description:
+                f.write(str(cmd_description))
+                f.write("\n\n")
 
-        f.write("### Outputs\n")
-        tbl_outputs = MarkdownTable(f, "Name", "Data type")
-        # for x in task.outputs:
-        for name, dtype in first_cmd.get('outputs', []):
-            tbl_outputs.write_row(escaped_md(name), escaped_md(dtype))
-        f.write("\n")
+            f.write("### Inputs\n")
+            tbl_inputs = MarkdownTable(f, "Name", "Bids path", "Data type")
+            # for x in task.inputs:
+            for x in cmd.get('inputs', []):
+                name, dtype, path = x
+                tbl_inputs.write_row(escaped_md(name), escaped_md(path), escaped_md(dtype))
+            f.write("\n")
 
-        f.write("### Parameters\n")
-        if not first_cmd.get("parameters", None):
-            f.write("None\n")
-        else:
-            tbl_params = MarkdownTable(f, "Name", "Data type")
-            for param in spec["parameters"]:
-                tbl_params.write_row("Todo", "Todo", "Todo")
-        f.write("\n")
+            f.write("### Outputs\n")
+            tbl_outputs = MarkdownTable(f, "Name", "Data type")
+            # for x in task.outputs:
+            for name, dtype in cmd.get('outputs', []):
+                tbl_outputs.write_row(escaped_md(name), escaped_md(dtype))
+            f.write("\n")
+
+            f.write("### Parameters\n")
+            if not cmd.get("parameters", None):
+                f.write("None\n")
+            else:
+                tbl_params = MarkdownTable(f, "Name", "Data type")
+                for param in spec["parameters"]:
+                    tbl_params.write_row("Todo", "Todo", "Todo")
+            f.write("\n")
 
 
 def escaped_md(value: str) -> str:
@@ -323,4 +331,4 @@ class MarkdownTable:
         cols += [""] * (len(self.headers) - len(cols))
 
         # TODO handle new lines in col
-        self.f.write("|" + "|".join(col.replace("|", "\\|") for col in cols) + "|\n")
+        self.f.write("|" + "|".join(str(col).replace("|", "\\|") for col in cols) + "|\n")
