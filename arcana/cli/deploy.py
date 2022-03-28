@@ -13,7 +13,7 @@ from arcana.data.stores.medimage import XnatViaCS
 
 
 DOCKER_REGISTRY = 'docker.io'
-SCHEMA_DIR = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, 'schema')
+SCHEMA_DIR = os.path.join(os.path.dirname(__file__), os.pardir, 'schema')
 
 
 @cli.group()
