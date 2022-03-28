@@ -1,15 +1,19 @@
+import json
 import logging
 import os
 from pathlib import Path
 import click
 import docker.errors
 import yaml
+from jsonschema import validate
+
 from arcana.core.cli import cli
 from arcana.data.spaces.medimage import Clinical
 from arcana.data.stores.medimage import XnatViaCS
 
 
 DOCKER_REGISTRY = 'docker.io'
+SCHEMA_DIR = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, 'schema')
 
 
 @cli.group()
@@ -170,6 +174,13 @@ str
     click.echo(executable)
 
 
+def validate_pipeline(data):
+    with open(os.path.join(SCHEMA_DIR, 'pipeline.schema.json'), 'r') as f:
+        schema = json.load(f)
+
+    validate(data, schema=schema)
+
+
 def load_yaml_spec(path, base_dir=None):
     def concat(loader, node):
         seq = loader.construct_sequence(node)
@@ -193,10 +204,23 @@ def load_yaml_spec(path, base_dir=None):
     with open(path, 'r') as f:
         data = yaml.load(f, Loader=yaml.SafeLoader)
 
-    frequency = data.get('frequency', None)
-    if frequency:
-        # TODO: Handle other frequency types, are there any?
-        data['frequency'] = Clinical[frequency.split('.')[-1]]
+    validate_pipeline(data)
+
+    for cmd in data.get('commands',[]):
+        frequency = cmd.get('frequency', None)
+        # resolve_class(format, prefixes=['arcana.data.formats'])
+        if frequency:
+            # TODO: Handle other frequency types, are there any?
+            cmd['frequency'] = Clinical[frequency.split('.')[-1]]
+
+        # for cmd_input in cmd.get('inputs', []):
+        #     if cmd_input[1]:
+        #         cmd_input[1] = resolve_class(cmd_input[1], prefixes=['arcana.data.formats'])
+        #
+        # for cmd_output in cmd.get('outputs', []):
+        #     if cmd_output[1]:
+        #         cmd_output[1] = resolve_class(cmd_output[1], prefixes=['arcana.data.formats'])
+
 
     data['_relative_dir'] = os.path.dirname(os.path.relpath(path, base_dir)) if base_dir else ''
     data['_module_name'] = os.path.basename(path).rsplit('.', maxsplit=1)[0]
@@ -225,7 +249,7 @@ def extract_wrapper_specs(package_path):
 
 def create_doc(spec, doc_dir, pkg_name, flatten: bool):
     header = {
-        "title": spec["package_name"],
+        "title": spec["pkg_name"],
         "weight": 10,
         "source_file": pkg_name,
     }
@@ -248,59 +272,67 @@ def create_doc(spec, doc_dir, pkg_name, flatten: bool):
         yaml.dump(header, f)
         f.write("\n---\n\n")
 
-        f.write(f'{spec["description"]}\n\n')
-
-        f.write("### Info\n")
+        f.write("## Info\n")
         tbl_info = MarkdownTable(f, "Key", "Value")
-        if spec.get("version", None):
-            tbl_info.write_row("Version", spec["version"])
         if spec.get("pkg_version", None):
             tbl_info.write_row("App version", spec["pkg_version"])
         # if task.image and task.image != ':':
         #     tbl_info.write_row("Image", escaped_md(task.image))
         if spec.get("base_image", None):  # and task.image != spec["base_image"]:
             tbl_info.write_row("Base image", escaped_md(spec["base_image"]))
-        if spec.get("maintainer", None):
-            tbl_info.write_row("Maintainer", spec["maintainer"])
         if spec.get("info_url", None):
             tbl_info.write_row("Info URL", spec["info_url"])
-        if spec.get("frequency", None):
-            tbl_info.write_row("Frequency", spec["frequency"].name.title())
         if spec.get("doi", None):
             tbl_info.write_row("DOI", spec["doi"])
+        if spec.get("authors", None):
+            tbl_info.write_row("Authors", "<br/>".join(spec["authors"]))
 
         f.write("\n")
 
+        f.write("## Commands\n")
         for idx, cmd in enumerate(spec['commands']):
-            # TODO: How are multiple commands distinguished between?
+            f.write(f"### {cmd['pipeline_name']}\n")
 
             cmd_description = cmd.get('description', None)
             if cmd_description:
                 f.write(str(cmd_description))
                 f.write("\n\n")
 
-            f.write("### Inputs\n")
-            tbl_inputs = MarkdownTable(f, "Name", "Bids path", "Data type")
+            tbl_cmd_info = MarkdownTable(f, "Key", "Value")
+            if cmd.get("version", None):
+                tbl_cmd_info.write_row("Version", cmd["version"])
+            if cmd.get("pydra_task", None):
+                tbl_cmd_info.write_row("Pydra task", cmd["pydra_task"])
+            if cmd.get("info_url", None):
+                tbl_cmd_info.write_row("Info URL", cmd["info_url"])
+            if cmd.get("frequency", None):
+                tbl_cmd_info.write_row("Frequency", cmd["frequency"].name.title())
+
+            f.write("#### Inputs\n")
+            tbl_inputs = MarkdownTable(f, "Name", "Bids path", "Data type", "Frequency")
             # for x in task.inputs:
-            for x in cmd.get('inputs', []):
-                name, dtype, path = x
-                tbl_inputs.write_row(escaped_md(name), escaped_md(path), escaped_md(dtype))
+            for name, dtype, path, freq in cmd.get('inputs', []):
+                tbl_inputs.write_row(escaped_md(name), escaped_md(path), escaped_md(dtype), escaped_md(freq))
             f.write("\n")
 
-            f.write("### Outputs\n")
-            tbl_outputs = MarkdownTable(f, "Name", "Data type")
+            f.write("#### Outputs\n")
+            tbl_outputs = MarkdownTable(f, "Name", "Data type", "Path")
             # for x in task.outputs:
-            for name, dtype in cmd.get('outputs', []):
-                tbl_outputs.write_row(escaped_md(name), escaped_md(dtype))
+            for name, dtype, dest in cmd.get('outputs', []):
+                tbl_outputs.write_row(escaped_md(name), escaped_md(dtype), escaped_md(dest))
             f.write("\n")
 
-            f.write("### Parameters\n")
+            defaults_dict = dict(cmd.get('defaults', []))
+
+            f.write("#### Parameters\n")
             if not cmd.get("parameters", None):
                 f.write("None\n")
             else:
-                tbl_params = MarkdownTable(f, "Name", "Data type")
-                for param in spec["parameters"]:
-                    tbl_params.write_row("Todo", "Todo", "Todo")
+                tbl_params = MarkdownTable(f, "Name", "Description", "Default value")
+                for name, desc in cmd["parameters"]:
+                    def_value = defaults_dict.get(name, None)
+
+                    tbl_params.write_row(escaped_md(name), desc, def_value or '')
             f.write("\n")
 
 

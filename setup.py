@@ -37,4 +37,6 @@ setup(
          "Topic :: Scientific/Engineering :: Medical Science Apps."]
         + ["Programming Language :: Python :: " + str(v)
            for v in python_versions]),
+    package_data={PACKAGE_NAME: ['schema/*.schema.json']},
+    include_package_data=True,
     keywords='repository analysis neuroimaging workflows pipelines')

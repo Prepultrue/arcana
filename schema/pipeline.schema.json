@@ -1,0 +1,285 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/Pipeline",
+    "definitions": {
+        "Pipeline": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "pkg_name": {
+                    "type": "string"
+                },
+                "pkg_version": {
+                    "type": "string"
+                },
+                "wrapper_version": {
+                    "type": "string",
+                    "format": "integer"
+                },
+                "authors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "base_image": {
+                    "type": "string"
+                },
+                "info_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "qt-uri-protocols": [
+                        "https"
+                    ]
+                },
+                "docker_org": {
+                    "type": "string"
+                },
+                "docker_registry": {
+                    "type": "string"
+                },
+                "package_manager": {
+                    "type": "string"
+                },
+                "packages": {
+                    "type": "array",
+                    "items": {}
+                },
+                "extra_labels": {
+                    "type": "null"
+                },
+                "arcana_extras": {
+                    "type": "array",
+                    "items": {}
+                },
+                "commands": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Command"
+                    }
+                },
+                "doi": {
+                    "type": "string"
+                },
+                "zenodo": {
+                    "$ref": "#/definitions/Zenodo"
+                }
+            },
+            "required": [
+                "arcana_extras",
+                "authors",
+                "base_image",
+                "commands",
+                "docker_org",
+                "docker_registry",
+                "extra_labels",
+                "info_url",
+                "package_manager",
+                "packages",
+                "pkg_name",
+                "pkg_version",
+                "wrapper_version"
+            ],
+            "title": "Pipeline"
+        },
+        "Command": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "pipeline_name": {
+                    "type": "string"
+                },
+                "pydra_task": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "info_url": {
+                    "type": "string"
+                },
+                "inputs": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "outputs": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "defaults": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+
+                        }
+                    }
+                },
+                "frequency": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "description",
+                "frequency",
+                "info_url",
+                "inputs",
+                "outputs",
+                "parameters",
+                "pipeline_name",
+                "pydra_task",
+                "version"
+            ],
+            "title": "Command"
+        },
+        "Zenodo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "title": {
+                    "type": "string"
+                },
+                "authors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Author"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "related_identifiers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Related"
+                    }
+                },
+                "contributors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Contributor"
+                    }
+                },
+                "subjects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Subject"
+                    }
+                }
+            },
+            "required": [
+                "title",
+                "authors"
+            ],
+            "title": "Zenodo"
+        },
+        "Author": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "affiliation": {
+                    "type": "string"
+                },
+                "orcid": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "affiliation",
+                "name"
+            ],
+            "title": "Author"
+        },
+        "Contributor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "affiliation": {
+                    "type": "string"
+                },
+                "orcid": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "affiliation",
+                "name",
+                "type"
+            ],
+            "title": "Contributor"
+        },
+        "Related": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "identifier": {
+                    "type": "string"
+                },
+                "relation": {
+                    "type": "string"
+                },
+                "resource_type": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "identifier"
+            ],
+            "title": "Related"
+        },
+        "Subject": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "term": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "identifier",
+                "term"
+            ],
+            "title": "Subject"
+        }
+    }
+}
